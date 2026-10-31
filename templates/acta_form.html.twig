@@ -1,0 +1,114 @@
+{# Ficha de un acta: datos, activos, integridad, estado y bitácora #}
+<div class="actasentrega container-fluid">
+
+  <div class="d-flex align-items-center mb-3">
+    <h2 class="mb-0 me-3"><i class="ti ti-file-certificate me-2"></i>{{ acta.numero }}</h2>
+    <span class="badge fs-5 {{ acta.estado == 'anulada' ? 'bg-danger-lt' : (acta.estado == 'firmada' ? 'bg-success-lt' : 'bg-blue-lt') }}">
+      {{ estados[acta.estado] ?? acta.estado }}
+    </span>
+    {% if pdf_url %}
+      <a class="btn btn-outline-secondary ms-auto" href="{{ pdf_url }}" target="_blank">
+        <i class="ti ti-file-type-pdf me-1"></i>{{ __('Abrir PDF', 'actasentrega') }}
+      </a>
+    {% endif %}
+  </div>
+
+  {% if integridad.valida %}
+    <div class="alert alert-success">
+      <i class="ti ti-shield-check me-2"></i>{{ __('Integridad verificada: el acta no ha sido modificada desde su generación.', 'actasentrega') }}
+    </div>
+  {% else %}
+    <div class="alert alert-danger">
+      <i class="ti ti-shield-x me-2"></i><b>{{ __('Integridad comprometida.', 'actasentrega') }}</b>
+      <ul class="mb-0">{% for m in integridad.motivos %}<li>{{ m }}</li>{% endfor %}</ul>
+    </div>
+  {% endif %}
+
+  <div class="row g-3">
+    <div class="col-lg-8">
+      <div class="card mb-3">
+        <div class="card-body">
+          <dl class="row mb-0">
+            <dt class="col-sm-3">{{ __('Tipo', 'actasentrega') }}</dt><dd class="col-sm-9">{{ tipos[acta.tipo] ?? acta.tipo }}</dd>
+            <dt class="col-sm-3">{{ __('Fecha', 'actasentrega') }}</dt><dd class="col-sm-9">{{ acta.fecha_generacion }}</dd>
+            <dt class="col-sm-3">{{ __('Entrega', 'actasentrega') }}</dt><dd class="col-sm-9">{{ entrega }}</dd>
+            <dt class="col-sm-3">{{ __('Recibe', 'actasentrega') }}</dt><dd class="col-sm-9">{{ recibe }}</dd>
+            <dt class="col-sm-3">{{ __('Generada por', 'actasentrega') }}</dt><dd class="col-sm-9">{{ tecnico }}</dd>
+            {% if acta.observaciones %}
+              <dt class="col-sm-3">{{ __('Observaciones', 'actasentrega') }}</dt><dd class="col-sm-9">{{ acta.observaciones|nl2br }}</dd>
+            {% endif %}
+            {% if acta.estado == 'anulada' %}
+              <dt class="col-sm-3 text-danger">{{ __('Motivo de anulación', 'actasentrega') }}</dt><dd class="col-sm-9">{{ acta.motivo_anulacion }}</dd>
+            {% endif %}
+            <dt class="col-sm-3">{{ __('Huella SHA-256', 'actasentrega') }}</dt><dd class="col-sm-9"><code class="text-break">{{ acta.huella_sha256 }}</code></dd>
+          </dl>
+        </div>
+      </div>
+
+      <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title">{{ __('Activos (datos al momento del acta)', 'actasentrega') }}</h3></div>
+        <div class="table-responsive">
+          <table class="table table-sm card-table">
+            <thead><tr>
+              <th>{{ __('Nombre', 'actasentrega') }}</th><th>{{ __('Fabricante / modelo', 'actasentrega') }}</th>
+              <th>{{ __('N.º de serie', 'actasentrega') }}</th><th>{{ __('N.º de inventario', 'actasentrega') }}</th>
+              <th>{{ __('Estado físico', 'actasentrega') }}</th>
+            </tr></thead>
+            <tbody>
+              {% for i in items %}
+              <tr><td>{{ i.nombre }}</td><td>{{ i.fabricante }} {{ i.modelo }}</td><td>{{ i.serial }}</td><td>{{ i.otherserial }}</td><td>{{ i.estado_fisico }}</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      {% if puede_editar and transiciones is not empty %}
+      <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title">{{ __('Cambiar estado', 'actasentrega') }}</h3></div>
+        <div class="card-body">
+          {% if 'firmada' in transiciones %}
+          <form method="post" action="{{ form_url }}" class="mb-3">
+            <input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="id" value="{{ acta.id }}">
+            <p class="text-muted small">{{ __('Márquela como firmada cuando tenga la copia firmada por ambas partes.', 'actasentrega') }}</p>
+            <button type="submit" name="firmar" value="1" class="btn btn-success w-100"><i class="ti ti-signature me-1"></i>{{ __('Marcar como firmada', 'actasentrega') }}</button>
+          </form>
+          {% endif %}
+          {% if 'anulada' in transiciones %}
+          <form method="post" action="{{ form_url }}">
+            <input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="id" value="{{ acta.id }}">
+            <label class="form-label" for="actasentrega-motivo">{{ __('Motivo de anulación', 'actasentrega') }}</label>
+            <textarea class="form-control mb-2" name="motivo_anulacion" id="actasentrega-motivo" rows="2" required maxlength="500"></textarea>
+            <button type="submit" name="anular" value="1" class="btn btn-outline-danger w-100"><i class="ti ti-ban me-1"></i>{{ __('Anular acta', 'actasentrega') }}</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title">{{ __('Verificación pública', 'actasentrega') }}</h3></div>
+        <div class="card-body small">
+          <p>{{ __('El código QR del PDF abre esta dirección:', 'actasentrega') }}</p>
+          <a href="{{ url_verificacion }}" target="_blank" class="text-break">{{ url_verificacion }}</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h3 class="card-title">{{ __('Bitácora', 'actasentrega') }}</h3></div>
+        <ul class="list-group list-group-flush small">
+          {% for ev in eventos %}
+          <li class="list-group-item">
+            <b>{{ ev.accion }}</b> · {{ ev.date_creation }}<br>
+            <span class="text-muted">{{ ev.usuario }}{% if ev.detalle %} — {{ ev.detalle }}{% endif %}</span>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>

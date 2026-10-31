@@ -1,0 +1,25 @@
+{
+    "name": "respanat/actasentrega",
+    "description": "Plugin para GLPI 11 que genera actas de entrega, devolución y traslado de activos con validación de consistencia y huella SHA-256 verificable.",
+    "type": "glpi-plugin",
+    "license": "GPL-3.0-or-later",
+    "authors": [
+        { "name": "Ramiro Alfonso España Tejada" }
+    ],
+    "require": {
+        "php": ">=8.2"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.5"
+    },
+    "autoload": {
+        "psr-4": { "GlpiPlugin\\Actasentrega\\": "src/" }
+    },
+    "scripts": {
+        "test": "phpunit"
+    },
+    "config": {
+        "platform": { "php": "8.2.0" },
+        "sort-packages": true
+    }
+}

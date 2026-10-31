@@ -1,0 +1,152 @@
+{# Pestaña «Actas» en la ficha del usuario #}
+<div class="actasentrega container-fluid px-0">
+
+  {% if puede_generar %}
+  <form method="post" action="{{ form_url }}" id="actasentrega-form" class="card mb-4">
+    <input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="users_id" value="{{ user.getID() }}">
+
+    <div class="card-header">
+      <h3 class="card-title"><i class="ti ti-file-certificate me-2"></i>{{ __('Generar acta', 'actasentrega') }}</h3>
+    </div>
+
+    <div class="card-body">
+      <div class="row g-3 mb-3">
+        <div class="col-md-4">
+          <label class="form-label" for="actasentrega-tipo">{{ __('Tipo de acta', 'actasentrega') }}</label>
+          <select class="form-select" name="tipo" id="actasentrega-tipo">
+            {% for clave, etiqueta in tipos %}
+              <option value="{{ clave }}">{{ etiqueta }}</option>
+            {% endfor %}
+          </select>
+          <div class="form-hint" id="actasentrega-ayuda-tipo"></div>
+        </div>
+        <div class="col-md-5 d-none" id="actasentrega-anterior">
+          <label class="form-label">{{ __('Usuario que entrega (custodio anterior)', 'actasentrega') }}</label>
+          {{ dropdown_anterior|raw }}
+        </div>
+      </div>
+
+      {% if activos is empty %}
+        <div class="alert alert-info mb-0">
+          {{ __('Este usuario no tiene activos asignados en GLPI. Asígnelos primero en la ficha de cada activo (campo «Usuario»).', 'actasentrega') }}
+        </div>
+      {% else %}
+        <div class="table-responsive">
+          <table class="table table-sm table-hover align-middle">
+            <thead>
+              <tr>
+                <th><input type="checkbox" class="form-check-input" id="actasentrega-todos" title="{{ __('Seleccionar todos', 'actasentrega') }}"></th>
+                <th>{{ __('Tipo', 'actasentrega') }}</th>
+                <th>{{ __('Nombre', 'actasentrega') }}</th>
+                <th>{{ __('Fabricante / modelo', 'actasentrega') }}</th>
+                <th>{{ __('N.º de serie', 'actasentrega') }}</th>
+                <th>{{ __('N.º de inventario', 'actasentrega') }}</th>
+                <th>{{ __('Estado físico', 'actasentrega') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for a in activos %}
+              <tr class="{{ a.completo ? '' : 'table-warning' }}">
+                <td><input type="checkbox" class="form-check-input actasentrega-activo" name="activos[]" value="{{ a.clave }}"></td>
+                <td>{{ a.tipo_activo }}</td>
+                <td>{{ a.nombre }}</td>
+                <td>{{ a.fabricante }} {{ a.modelo }}</td>
+                <td>{{ a.serial ?: '—' }}</td>
+                <td>{{ a.otherserial ?: '—' }}
+                  {% if not a.completo %}
+                    <i class="ti ti-alert-triangle text-warning ms-1" title="{{ __('Faltan datos en el inventario: el acta no se generará con este activo.', 'actasentrega') }}"></i>
+                  {% endif %}
+                </td>
+                <td>
+                  <select class="form-select form-select-sm" name="estado_fisico[{{ a.clave }}]">
+                    <option value="Bueno">{{ __('Bueno', 'actasentrega') }}</option>
+                    <option value="Regular">{{ __('Regular', 'actasentrega') }}</option>
+                    <option value="Malo">{{ __('Malo', 'actasentrega') }}</option>
+                  </select>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <label class="form-label mt-2" for="actasentrega-obs">{{ __('Observaciones', 'actasentrega') }}</label>
+        <textarea class="form-control" name="observaciones" id="actasentrega-obs" rows="2" maxlength="1000"></textarea>
+      {% endif %}
+    </div>
+
+    {% if activos is not empty %}
+    <div class="card-footer text-end">
+      <button type="submit" name="generar" value="1" class="btn btn-primary">
+        <i class="ti ti-file-plus me-1"></i>{{ __('Validar y generar acta', 'actasentrega') }}
+      </button>
+    </div>
+    {% endif %}
+  </form>
+  {% endif %}
+
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title"><i class="ti ti-history me-2"></i>{{ __('Actas del usuario', 'actasentrega') }}</h3>
+    </div>
+    {% if actas is empty %}
+      <div class="card-body text-muted">{{ __('Todavía no hay actas para este usuario.', 'actasentrega') }}</div>
+    {% else %}
+      <div class="table-responsive">
+        <table class="table table-sm table-hover card-table">
+          <thead>
+            <tr>
+              <th>{{ __('Número', 'actasentrega') }}</th>
+              <th>{{ __('Tipo', 'actasentrega') }}</th>
+              <th>{{ __('Fecha', 'actasentrega') }}</th>
+              <th>{{ __('Estado', 'actasentrega') }}</th>
+              <th>{{ __('Huella SHA-256', 'actasentrega') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for acta in actas %}
+            <tr>
+              <td><a href="{{ form_url }}?id={{ acta.id }}">{{ acta.numero }}</a></td>
+              <td>{{ tipos[acta.tipo] ?? acta.tipo }}</td>
+              <td>{{ acta.fecha_generacion }}</td>
+              <td>
+                <span class="badge {{ acta.estado == 'anulada' ? 'bg-danger-lt' : (acta.estado == 'firmada' ? 'bg-success-lt' : 'bg-blue-lt') }}">
+                  {{ estados[acta.estado] ?? acta.estado }}
+                </span>
+              </td>
+              <td><code>{{ acta.huella_sha256|slice(0, 16) }}…</code></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+(function () {
+  const tipo = document.getElementById('actasentrega-tipo');
+  if (!tipo) { return; }
+  const anterior = document.getElementById('actasentrega-anterior');
+  const ayuda = document.getElementById('actasentrega-ayuda-tipo');
+  const textos = {
+    entrega: {{ __('Usted entrega; el usuario de esta ficha recibe. Los activos deben estar asignados a él en GLPI.', 'actasentrega')|json_encode|raw }},
+    devolucion: {{ __('El usuario de esta ficha devuelve; usted recibe. Los activos deben seguir asignados a él en GLPI.', 'actasentrega')|json_encode|raw }},
+    traslado: {{ __('El custodio anterior entrega; el usuario de esta ficha recibe. Reasigne primero los activos en GLPI.', 'actasentrega')|json_encode|raw }}
+  };
+  const actualizar = () => {
+    anterior.classList.toggle('d-none', tipo.value !== 'traslado');
+    ayuda.textContent = textos[tipo.value] || '';
+  };
+  tipo.addEventListener('change', actualizar);
+  actualizar();
+  const todos = document.getElementById('actasentrega-todos');
+  if (todos) {
+    todos.addEventListener('change', () => {
+      document.querySelectorAll('.actasentrega-activo').forEach((c) => { c.checked = todos.checked; });
+    });
+  }
+})();
+</script>

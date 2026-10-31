@@ -1,0 +1,33 @@
+{# Pestaña «Actas» en la ficha de un activo: historial de movimientos #}
+{% if filas is empty %}
+  <div class="alert alert-info">{{ __('Este activo no aparece en ningún acta.', 'actasentrega') }}</div>
+{% else %}
+  <div class="table-responsive">
+    <table class="table table-sm table-hover">
+      <thead>
+        <tr>
+          <th>{{ __('Número', 'actasentrega') }}</th>
+          <th>{{ __('Tipo', 'actasentrega') }}</th>
+          <th>{{ __('Fecha', 'actasentrega') }}</th>
+          <th>{{ __('Entrega', 'actasentrega') }}</th>
+          <th>{{ __('Recibe', 'actasentrega') }}</th>
+          <th>{{ __('Estado físico', 'actasentrega') }}</th>
+          <th>{{ __('Estado del acta', 'actasentrega') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in filas %}
+        <tr class="{{ f.estado == 'anulada' ? 'text-muted text-decoration-line-through' : '' }}">
+          <td><a href="{{ f.url }}">{{ f.numero }}</a></td>
+          <td>{{ tipos[f.tipo] ?? f.tipo }}</td>
+          <td>{{ f.fecha_generacion }}</td>
+          <td>{{ f.entrega }}</td>
+          <td>{{ f.recibe }}</td>
+          <td>{{ f.estado_fisico }}</td>
+          <td>{{ estados[f.estado] ?? f.estado }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endif %}
