@@ -60,3 +60,28 @@ Resultado: **12 casos, 12 superados.**
 | I-12 | Devolución | Gómez Luis › Actas › Devolución, estado «Regular» | Acta AD-2026-000001 con texto de devolución | ✔ | [PDF](img/04_pdf_devolucion.png) |
 
 Pendiente: prueba de integración del traslado (requiere seleccionar el custodio anterior) y evaluación antes y después con usuarios reales.
+
+## Procedimiento de la medición antes/después
+
+Instrumento: hoja «Medición» (casos, mediciones, línea base y resumen) y plantilla de acta manual en Google Docs.
+
+1. Cargar los datos sintéticos en el GLPI de pruebas: `mysql -u <usuario> -p <base_glpi> < tools/datos_prueba.sql`
+   (3 usuarios ficticios y 8 activos: PC-01…04, MON-01…03, IMP-01; PC-03 sin n.º de inventario a propósito).
+2. **Antes (manual):** para cada caso C01–C10, cronometrar desde que se abre una copia de la plantilla hasta que el acta queda lista para firmar, consultando los datos en GLPI y transcribiéndolos a mano.
+3. **Después (plugin):** recargar los datos (paso 1) y repetir C01–C10 desde la pestaña «Actas» del usuario, cronometrando hasta que se abre el PDF.
+4. Registrar por acta: tiempo, campos correctos (de 6 por activo) y errores de consistencia frente a GLPI.
+5. Casos que requieren preparación en GLPI: C08 (reasignar MON-01 a usuario2 antes del traslado) y C06/C07 (devoluciones sobre activos aún asignados).
+6. Ideal: un segundo técnico ejecuta la mitad de los casos para reducir el sesgo del evaluador (limitación señalada en el Informe crítico).
+
+| Caso | Tipo | Usuario | Activos | Qué se prueba |
+|---|---|---|---|---|
+| C01 | Entrega | usuario1 | PC-01 | Entrega simple |
+| C02 | Entrega | usuario1 | PC-01, MON-01 | Dos activos |
+| C03 | Entrega | usuario2 | PC-02, MON-02, IMP-01 | Tres activos |
+| C04 | Entrega | usuario2 | PC-03 | Activo sin n.º de inventario (el plugin bloquea) |
+| C05 | Entrega | usuario1 | PC-02 | Activo asignado a otra persona (el plugin bloquea) |
+| C06 | Devolución | usuario1 | PC-01 | Devolución simple |
+| C07 | Devolución | usuario2 | PC-02, MON-02 | Devolución de dos activos |
+| C08 | Traslado | usuario2 (anterior usuario1) | MON-01 | Traslado entre usuarios |
+| C09 | Entrega | usuario3 | PC-04, MON-03 | Serie que a mano se transcribe |
+| C10 | Entrega | usuario3 | PC-04, MON-03 (+ duplicado) | Activo repetido (el plugin no lo permite) |
