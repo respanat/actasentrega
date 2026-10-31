@@ -2,7 +2,7 @@
 
 **Referencia fija del estado del arte:** Protocols Manager **v2.2.0** (commit `623a7f9`, 28 de octubre de 2026), revisado en su código fuente y su README. Lo que ese complemento publique después de esta fecha queda fuera de la comparación.
 
-> Otro complemento relacionado, **useditemsexport** (Teclib'), exporta a PDF los elementos usados por un usuario; está disponible en el Marketplace y debe incluirse en el estado del arte (pendiente de revisión detallada).
+> También se revisó **Used Items Export** v2.7.0 (F. Legastelois, pluginsGLPI): exporta a PDF los elementos de un usuario desde su ficha, con número de referencia consecutivo; permite borrar las exportaciones y no tiene huella, estados ni vista global.
 
 | Característica | Acta en papel / Word | Plugin PDF (pluginsGLPI/pdf) | Protocols Manager v2.2.0 | **Actas de entrega (este plugin)** |
 |---|---|---|---|---|
