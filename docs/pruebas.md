@@ -42,7 +42,7 @@ Resultado: **20 pruebas, 28 aserciones, 0 fallidas.**
 
 ## Pruebas de integración en GLPI (navegador)
 
-Resultado: **12 casos, 12 superados.**
+Resultado: **16 casos, 16 superados.**
 
 | ID | Caso | Pasos | Resultado esperado | Obtenido | Evidencia |
 |---|---|---|---|---|---|
@@ -58,6 +58,11 @@ Resultado: **12 casos, 12 superados.**
 | I-10 | Historial del activo | PC-ADM-041 › Actas | Aparece AE-2026-000001 | ✔ | [08](img/08_historial_activo.png) |
 | I-11 | Firma y bitácora | Marcar como firmada | Estado «firmada»; bitácora con generación, verificaciones y firma | ✔ | [10](img/10_ficha_firmada_bitacora.png) |
 | I-12 | Devolución | Gómez Luis › Actas › Devolución, estado «Regular» | Acta AD-2026-000001 con texto de devolución | ✔ | [PDF](img/04_pdf_devolucion.png) |
+
+| I-13 | Panel de gestión | Herramientas › Actas de entrega | Indicadores, pendientes por antigüedad, cobertura 4/12, listado de 4 actas | ✔ | [11](img/11_panel_gestion.png) |
+| I-14 | Filtros y exportación | Estado «generada» + búsqueda «PC»; exportar CSV | 3 filas; CSV UTF-8 con 4 actas | ✔ | — |
+| I-15 | Autogestión | Usuario simplificado (post-only) › Plugins › Actas de entrega | Ve solo su acta AE-2026-000002 y la descarga (PDF) | ✔ | [12](img/12_mis_actas_autogestion.png) |
+| I-16 | Acceso indebido | El mismo usuario pide el PDF de un acta ajena y el panel | 403 en ambos casos | ✔ | — |
 
 Pendiente: prueba de integración del traslado (requiere seleccionar el custodio anterior) y evaluación antes y después con usuarios reales.
 

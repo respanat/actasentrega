@@ -1,0 +1,44 @@
+{# «Mis actas»: el usuario consulta y descarga las actas en las que participa #}
+<div class="actasentrega container-fluid">
+  <h2 class="mb-1"><i class="ti ti-file-certificate me-2"></i>{{ __('Mis actas', 'actasentrega') }}</h2>
+  <p class="text-muted">{{ __('Actas de entrega, devolución o traslado de equipos en las que usted aparece como quien recibe o quien entrega. Puede descargarlas en cualquier momento.', 'actasentrega') }}</p>
+
+  {% if actas is empty %}
+    <div class="alert alert-info">{{ __('Todavía no tiene actas registradas.', 'actasentrega') }}</div>
+  {% else %}
+    <div class="row row-cards">
+      {% for a in actas %}
+      <div class="col-md-6 col-xl-4">
+        <div class="card h-100 {{ a.estado == 'anulada' ? 'opacity-75' }}">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title mb-0">{{ a.numero }}</h3>
+              <div class="text-muted small">{{ tipos[a.tipo] ?? a.tipo }} · {{ a.fecha_generacion|date('d/m/Y') }}</div>
+            </div>
+            <span class="badge ms-auto {{ a.estado == 'anulada' ? 'bg-secondary-lt' : (a.estado == 'firmada' ? 'bg-green-lt' : 'bg-orange-lt') }}">
+              {{ a.estado == 'generada' ? __('Pendiente de firma', 'actasentrega') : (estados[a.estado] ?? a.estado) }}
+            </span>
+          </div>
+          <div class="card-body">
+            <div class="small text-muted mb-1">{{ a.rol == 'recibe' ? __('Usted recibió:', 'actasentrega') : __('Usted entregó:', 'actasentrega') }}</div>
+            <ul class="mb-0 ps-3">
+              {% for i in a.activos %}
+                <li>{{ i.nombre }} <span class="text-muted small">· {{ i.fabricante }} {{ i.modelo }} · {{ i.serial }}</span></li>
+              {% endfor %}
+            </ul>
+            {% if a.estado == 'anulada' %}
+              <div class="alert alert-secondary small mt-2 mb-0">{{ __('Esta acta fue anulada y no tiene validez.', 'actasentrega') }}</div>
+            {% endif %}
+          </div>
+          <div class="card-footer d-flex gap-2">
+            {% if a.documents_id > 0 %}
+              <a class="btn btn-primary btn-sm" href="{{ pdf_base }}{{ a.id }}" target="_blank"><i class="ti ti-download me-1"></i>{{ __('Descargar PDF', 'actasentrega') }}</a>
+            {% endif %}
+            <a class="btn btn-outline-secondary btn-sm" href="{{ verificar_base }}?n={{ a.numero|url_encode }}&h={{ a.huella_sha256 }}" target="_blank"><i class="ti ti-shield-check me-1"></i>{{ __('Verificar', 'actasentrega') }}</a>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>

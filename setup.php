@@ -73,6 +73,10 @@ function plugin_init_actasentrega(): void
         $PLUGIN_HOOKS[Hooks::MENU_TOADD]['actasentrega'] = ['tools' => Acta::class];
     }
 
+    // Autogestión: «Mis actas» en el menú de la interfaz simplificada
+    $PLUGIN_HOOKS[Hooks::HELPDESK_MENU_ENTRY]['actasentrega']      = '/front/mis_actas.php';
+    $PLUGIN_HOOKS[Hooks::HELPDESK_MENU_ENTRY_ICON]['actasentrega'] = 'ti ti-file-certificate';
+
     // La página de verificación del QR es pública: no exige sesión.
     // Solo muestra datos mínimos (Ley 1581 de 2012: minimización).
     Firewall::addPluginStrategyForLegacyScripts(

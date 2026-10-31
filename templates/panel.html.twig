@@ -1,0 +1,214 @@
+{# Panel de gestión de actas (basado en el mockup «Panel Principal» del autor, 2025) #}
+<div class="actasentrega container-fluid">
+
+  <div class="d-flex flex-wrap align-items-end justify-content-between mb-3 gap-2">
+    <div>
+      <h2 class="mb-0"><i class="ti ti-file-certificate me-2"></i>{{ __('Actas de entrega', 'actasentrega') }}</h2>
+      <div class="text-muted">{{ __('Gestión de las actas de entrega, devolución y traslado de activos', 'actasentrega') }}</div>
+    </div>
+    {% if puede_generar %}
+    <form class="d-flex align-items-center gap-2" id="actasentrega-ir-generar" style="min-width: 360px">
+      <div class="flex-grow-1">{{ dropdown_usuario|raw }}</div>
+      <button type="submit" class="btn btn-primary text-nowrap"><i class="ti ti-file-plus me-1"></i>{{ __('Nueva acta', 'actasentrega') }}</button>
+    </form>
+    {% endif %}
+  </div>
+
+  {# Indicadores #}
+  <div class="row row-cards mb-3">
+    <div class="col-sm-6 col-lg-3">
+      <div class="card card-sm"><div class="card-body d-flex align-items-center">
+        <span class="avatar bg-blue-lt me-3"><i class="ti ti-files fs-2"></i></span>
+        <div>
+          <div class="text-muted small">{{ __('Total generadas', 'actasentrega') }}</div>
+          <div class="h2 mb-0">{{ ind.total }}</div>
+          <div class="small text-muted">+{{ ind.total_mes }} {{ __('este mes', 'actasentrega') }}</div>
+        </div>
+      </div></div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <a class="card card-sm card-link" href="{{ panel_url }}?estado=generada">
+        <div class="card-body d-flex align-items-center">
+          <span class="avatar bg-orange-lt me-3"><i class="ti ti-clock-hour-4 fs-2"></i></span>
+          <div>
+            <div class="text-muted small">{{ __('Pendientes de firma', 'actasentrega') }}</div>
+            <div class="h2 mb-0 text-orange">{{ ind.pendientes }}</div>
+            <div class="small text-muted">{{ ind.antiguedad['8+'] }} {{ __('con más de 7 días', 'actasentrega') }}</div>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="card card-sm"><div class="card-body d-flex align-items-center">
+        <span class="avatar bg-green-lt me-3"><i class="ti ti-signature fs-2"></i></span>
+        <div>
+          <div class="text-muted small">{{ __('Firmadas este mes', 'actasentrega') }}</div>
+          <div class="h2 mb-0 text-green">{{ ind.firmadas_mes }}</div>
+          <div class="small text-muted">{{ ind.anuladas }} {{ __('anuladas en total', 'actasentrega') }}</div>
+        </div>
+      </div></div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="card card-sm"><div class="card-body d-flex align-items-center">
+        <span class="avatar bg-purple-lt me-3"><i class="ti ti-devices fs-2"></i></span>
+        <div class="flex-grow-1">
+          <div class="text-muted small">{{ __('Activos con acta vigente', 'actasentrega') }}</div>
+          <div class="h2 mb-0">{{ ind.activos_con_acta }} <span class="fs-5 text-muted">/ {{ ind.activos_asignados }}</span></div>
+          <div class="progress progress-sm mt-1" title="{{ ind.cobertura }} %"><div class="progress-bar bg-purple" style="width: {{ ind.cobertura }}%"></div></div>
+          <div class="small text-muted">{{ ind.cobertura }} % {{ __('de los activos asignados', 'actasentrega') }}</div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="row row-cards mb-3">
+    {# Pendientes de firma por antigüedad #}
+    <div class="col-lg-6">
+      <div class="card h-100">
+        <div class="card-header"><h3 class="card-title">{{ __('Pendientes de firma por antigüedad', 'actasentrega') }}</h3></div>
+        <div class="card-body">
+          <div class="d-flex gap-2 mb-3">
+            <span class="badge bg-green-lt fs-5 p-2">0–3 {{ __('días', 'actasentrega') }}: <b>{{ ind.antiguedad['0-3'] }}</b></span>
+            <span class="badge bg-yellow-lt fs-5 p-2">4–7 {{ __('días', 'actasentrega') }}: <b>{{ ind.antiguedad['4-7'] }}</b></span>
+            <span class="badge bg-red-lt fs-5 p-2">+7 {{ __('días', 'actasentrega') }}: <b>{{ ind.antiguedad['8+'] }}</b></span>
+          </div>
+          {% if ind.pendientes_lista is empty %}
+            <div class="text-muted">{{ __('No hay actas pendientes de firma.', 'actasentrega') }}</div>
+          {% else %}
+            <ul class="list-group list-group-flush">
+              {% for p in ind.pendientes_lista %}
+              <li class="list-group-item d-flex justify-content-between px-0">
+                <span><a href="{{ form_url }}?id={{ p.id }}">{{ p.numero }}</a> · {{ p.recibe }}</span>
+                <span class="badge {{ p.dias > 7 ? 'bg-red-lt' : (p.dias > 3 ? 'bg-yellow-lt' : 'bg-green-lt') }}">{{ p.dias }} {{ __('días', 'actasentrega') }}</span>
+              </li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {# Distribución por tipo #}
+    <div class="col-lg-6">
+      <div class="card h-100">
+        <div class="card-header"><h3 class="card-title">{{ __('Actas vigentes por tipo', 'actasentrega') }}</h3></div>
+        <div class="card-body">
+          {% set max_tipo = max(ind.por_tipo|merge([1])) %}
+          {% for clave, etiqueta in tipos %}
+            <div class="mb-2">
+              <div class="d-flex justify-content-between small"><span>{{ etiqueta }}</span><b>{{ ind.por_tipo[clave] }}</b></div>
+              <div class="progress progress-sm"><div class="progress-bar" style="width: {{ (ind.por_tipo[clave] / max_tipo * 100)|round }}%"></div></div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# Listado con filtros #}
+  <div class="card">
+    <div class="card-header d-flex flex-wrap justify-content-between gap-2">
+      <h3 class="card-title mb-0">{{ __('Actas', 'actasentrega') }} <span class="text-muted fs-5">({{ total }})</span></h3>
+      <div class="d-flex gap-2">
+        <a class="btn btn-sm btn-outline-secondary" href="{{ export_url }}?q={{ f.q|url_encode }}&estado={{ f.estado }}&tipo={{ f.tipo }}&periodo={{ f.periodo }}">
+          <i class="ti ti-file-spreadsheet me-1"></i>{{ __('Exportar CSV', 'actasentrega') }}
+        </a>
+        <a class="btn btn-sm btn-outline-secondary" href="{{ panel_url }}?avanzada=1"><i class="ti ti-search me-1"></i>{{ __('Búsqueda avanzada', 'actasentrega') }}</a>
+      </div>
+    </div>
+    <form method="get" action="{{ panel_url }}" class="card-body border-bottom py-2">
+      <div class="row g-2">
+        <div class="col-md-4"><input class="form-control form-control-sm" name="q" value="{{ f.q }}" placeholder="{{ __('Buscar por número, persona, activo o serie…', 'actasentrega') }}"></div>
+        <div class="col-md-2">
+          <select class="form-select form-select-sm" name="estado">
+            <option value="">{{ __('Todos los estados', 'actasentrega') }}</option>
+            {% for k, v in estados %}<option value="{{ k }}" {{ f.estado == k ? 'selected' }}>{{ v }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <select class="form-select form-select-sm" name="tipo">
+            <option value="">{{ __('Todos los tipos', 'actasentrega') }}</option>
+            {% for k, v in tipos %}<option value="{{ k }}" {{ f.tipo == k ? 'selected' }}>{{ v }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <select class="form-select form-select-sm" name="periodo">
+            {% for k, v in periodos %}<option value="{{ k }}" {{ f.periodo == k ? 'selected' }}>{{ v }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2 d-flex gap-1">
+          <button class="btn btn-sm btn-primary flex-grow-1"><i class="ti ti-filter me-1"></i>{{ __('Filtrar', 'actasentrega') }}</button>
+          <a class="btn btn-sm btn-ghost-secondary" href="{{ panel_url }}" title="{{ __('Limpiar', 'actasentrega') }}"><i class="ti ti-x"></i></a>
+        </div>
+      </div>
+    </form>
+    <div class="table-responsive">
+      <table class="table table-sm table-hover card-table align-middle">
+        <thead>
+          <tr>
+            <th>{{ __('Número', 'actasentrega') }}</th>
+            <th>{{ __('Tipo', 'actasentrega') }}</th>
+            <th>{{ __('Activos', 'actasentrega') }}</th>
+            <th>{{ __('Recibe', 'actasentrega') }}</th>
+            <th>{{ __('Entrega', 'actasentrega') }}</th>
+            <th>{{ __('Fecha', 'actasentrega') }}</th>
+            <th>{{ __('Estado', 'actasentrega') }}</th>
+            <th class="text-end">{{ __('Acciones', 'actasentrega') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in filas %}
+          <tr class="{{ r.estado == 'anulada' ? 'text-muted' }}">
+            <td class="text-nowrap"><a href="{{ form_url }}?id={{ r.id }}"><b>{{ r.numero }}</b></a></td>
+            <td>{{ tipos[r.tipo] ?? r.tipo }}</td>
+            <td class="text-truncate" style="max-width: 220px" title="{{ r.activos_texto }}">{{ r.activos_texto }}</td>
+            <td>{{ r.recibe }}</td>
+            <td>{{ r.entrega }}</td>
+            <td class="text-nowrap">{{ r.fecha_generacion|date('d/m/Y H:i') }}</td>
+            <td>
+              <span class="badge {{ r.estado == 'anulada' ? 'bg-secondary-lt' : (r.estado == 'firmada' ? 'bg-green-lt' : 'bg-orange-lt') }}">
+                {{ r.estado == 'generada' ? __('Pendiente de firma', 'actasentrega') : (estados[r.estado] ?? r.estado) }}
+              </span>
+              {% if r.estado == 'generada' and r.dias > 7 %}<i class="ti ti-alert-circle text-red ms-1" title="{{ r.dias }} {{ __('días', 'actasentrega') }}"></i>{% endif %}
+            </td>
+            <td class="text-end text-nowrap">
+              <a class="btn btn-sm btn-outline-primary" href="{{ form_url }}?id={{ r.id }}">{{ __('Ver', 'actasentrega') }}</a>
+              {% if r.documents_id > 0 %}
+                <a class="btn btn-sm btn-outline-secondary" href="{{ pdf_base }}{{ r.id }}" target="_blank"><i class="ti ti-file-type-pdf"></i> PDF</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="8" class="text-center text-muted py-4">{{ __('No hay actas con estos filtros.', 'actasentrega') }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if paginas > 1 %}
+    <div class="card-footer d-flex justify-content-between align-items-center">
+      <span class="text-muted small">{{ __('Página', 'actasentrega') }} {{ f.pagina }} / {{ paginas }}</span>
+      <ul class="pagination m-0">
+        {% for p in 1..paginas %}
+          <li class="page-item {{ p == f.pagina ? 'active' }}">
+            <a class="page-link" href="{{ panel_url }}?q={{ f.q|url_encode }}&estado={{ f.estado }}&tipo={{ f.tipo }}&periodo={{ f.periodo }}&pagina={{ p }}">{{ p }}</a>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+(function () {
+  const f = document.getElementById('actasentrega-ir-generar');
+  if (!f) { return; }
+  f.addEventListener('submit', function (e) {
+    e.preventDefault();
+    const sel = f.querySelector('[name="users_id"]');
+    const id = sel ? parseInt(sel.value, 10) : 0;
+    if (id > 0) {
+      window.location = {{ user_form_url|json_encode|raw }} + '?id=' + id + '&forcetab=' + encodeURIComponent('GlpiPlugin\\Actasentrega\\Acta$1');
+    }
+  });
+})();
+</script>

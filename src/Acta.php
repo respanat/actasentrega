@@ -565,10 +565,71 @@ class Acta extends CommonDBTM
             'doc_url'      => $this->fields['documents_id'] > 0
                 ? Document::getFormURLWithID((int) $this->fields['documents_id']) : '',
             'pdf_url'      => $this->fields['documents_id'] > 0
-                ? $GLOBALS['CFG_GLPI']['root_doc'] . '/front/document.send.php?docid=' . (int) $this->fields['documents_id']
+                ? $GLOBALS['CFG_GLPI']['root_doc'] . '/plugins/actasentrega/front/descargar.php?id=' . $ID
                 : '',
         ]);
         return true;
+    }
+
+    // ------------------------------------------------------------------
+    // Autogestión: cada usuario consulta y descarga sus propias actas
+    // ------------------------------------------------------------------
+
+    /** ¿Puede el usuario de la sesión ver esta acta? Gestores con derecho READ, o una de las partes del acta. */
+    public function puedeVerPropia(): bool
+    {
+        $yo = (int) Session::getLoginUserID();
+        if ($yo <= 0 || $this->isNewItem()) {
+            return false;
+        }
+        if (self::canView() && Session::haveAccessToEntity((int) $this->fields['entities_id'])) {
+            return true;
+        }
+        return in_array($yo, [(int) $this->fields['users_id_recibe'], (int) $this->fields['users_id_entrega']], true);
+    }
+
+    /** Actas en las que participa un usuario (recibe o entrega). */
+    public static function actasDeUsuario(int $users_id): array
+    {
+        /** @var \DBmysql $DB */
+        global $DB;
+
+        $actas = iterator_to_array($DB->request([
+            'FROM'  => self::getTable(),
+            'WHERE' => ['OR' => ['users_id_recibe' => $users_id, 'users_id_entrega' => $users_id]],
+            'ORDER' => 'id DESC',
+        ]), false);
+        foreach ($actas as &$a) {
+            $a['activos'] = iterator_to_array($DB->request([
+                'FROM'  => ActaItem::getTable(),
+                'WHERE' => ['plugin_actasentrega_actas_id' => $a['id']],
+            ]), false);
+            $a['rol'] = (int) $a['users_id_recibe'] === $users_id ? 'recibe' : 'entrega';
+        }
+        unset($a);
+        return $actas;
+    }
+
+    /** Envía el PDF del acta tras comprobar el acceso; registra la descarga en la bitácora. */
+    public function enviarPdf(): void
+    {
+        /** @var \DBmysql $DB */
+        global $DB;
+
+        $doc = new Document();
+        if (!$doc->getFromDB((int) $this->fields['documents_id'])) {
+            throw new \Glpi\Exception\Http\NotFoundHttpException();
+        }
+        $ruta = GLPI_DOC_DIR . '/' . $doc->fields['filepath'];
+        if (!is_file($ruta) || !is_readable($ruta)) {
+            throw new \Glpi\Exception\Http\NotFoundHttpException();
+        }
+        self::registrarEvento($this->getID(), 'descarga');
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: inline; filename="' . $this->fields['numero'] . '.pdf"');
+        header('Content-Length: ' . filesize($ruta));
+        header('X-Content-Type-Options: nosniff');
+        readfile($ruta);
     }
 
     public function rawSearchOptions()

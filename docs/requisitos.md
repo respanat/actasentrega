@@ -19,7 +19,9 @@ Estado al 31 de octubre de 2026 (versión 0.1.0). Las pruebas citadas están en 
 | RF-11 | Verificar la integridad de un acta | La ficha y la página pública detectan huella falsa y datos alterados en la base de datos | Deseable | Hecho | I-04…I-06 |
 | RF-12 | Historial de actas por activo | Pestaña Actas en la ficha del activo con todos sus movimientos | Deseable | Hecho | I-10 |
 | RF-13 | Bitácora de eventos | Se registran generación, firma, anulación y cada verificación pública | Deseable | Hecho | I-11 |
-| RF-14 | Indicadores (tiempo por acta, completitud, consistencia) | Reporte de indicadores para la evaluación antes y después | Deseable | Pendiente (la completitud ya se calcula y queda en la bitácora) | — |
+| RF-14 | Indicadores (tiempo por acta, completitud, consistencia) | Reporte de indicadores para la evaluación antes y después | Deseable | Parcial: el panel muestra estados, antigüedad y cobertura; la completitud queda en la bitácora | I-13 |
+| RF-15 | Panel de gestión de todas las actas | Una sola vista con indicadores (generadas, pendientes de firma, firmadas en el mes, cobertura de activos), pendientes por antigüedad, listado con búsqueda y filtros por estado, tipo y periodo, y exportación CSV | Importante | Hecho | I-13, I-14 |
+| RF-16 | Autogestión del usuario («Mis actas») | El usuario de la interfaz simplificada ve y descarga solo sus propias actas; el acceso a actas ajenas se rechaza | Importante | Hecho | I-15, I-16 |
 
 ## Requisitos no funcionales
 

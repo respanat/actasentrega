@@ -2,6 +2,8 @@
 
 **Referencia fija del estado del arte:** Protocols Manager **v2.2.0** (commit `623a7f9`, 28 de octubre de 2026), revisado en su código fuente y su README. Lo que ese complemento publique después de esta fecha queda fuera de la comparación.
 
+> Otro complemento relacionado, **useditemsexport** (Teclib'), exporta a PDF los elementos usados por un usuario; está disponible en el Marketplace y debe incluirse en el estado del arte (pendiente de revisión detallada).
+
 | Característica | Acta en papel / Word | Plugin PDF (pluginsGLPI/pdf) | Protocols Manager v2.2.0 | **Actas de entrega (este plugin)** |
 |---|---|---|---|---|
 | Toma los datos del inventario de GLPI | No (se transcriben) | Sí (ficha de un activo) | Sí (activos asignados al usuario) | Sí (activos asignados al usuario, leídos en el instante de generar) |
@@ -18,7 +20,9 @@
 | **Estados y anulación con motivo** | No | No | No | **Sí** |
 | **Copia de los datos del activo al momento del acta** | El papel | No | El PDF únicamente | **Sí**, en base de datos (consultable y verificable) |
 | **Historial de actas en la ficha del activo** | No | No | El documento se asocia al activo | **Sí**, pestaña con todos los movimientos |
-| **Bitácora de eventos** | No | No | No | **Sí** (generación, firma, anulación, verificaciones) |
+| **Bitácora de eventos** | No | No | No | **Sí** (generación, firma, anulación, verificaciones, descargas) |
+| **Vista global de gestión de actas** | No | No | No: las actas solo se listan dentro de la ficha de cada usuario (consulta filtrada por `user_id`); su único menú es de configuración de plantillas | **Sí**: panel con indicadores, pendientes de firma por antigüedad, cobertura de activos, filtros y exportación CSV |
+| **Autogestión del usuario** | Pide copia al área de TI | No | No | **Sí**: «Mis actas» en la interfaz simplificada, con descarga controlada solo de sus actas |
 | Confirmación digital por el usuario | Firma manuscrita | No | En su lista de pendientes («Digital confirmation of document by user») | No (se evita competir en esa línea) |
 
 ## Evidencia de la revisión de Protocols Manager
@@ -27,6 +31,11 @@
 - No hay cálculo de huellas: la búsqueda de `sha256`, `hash(` e `integrity` en el código no arroja resultados (salvo contraseñas y CSRF).
 - No hay tipos de acta, estados ni consecutivo: el formulario genera un único tipo de «protocolo» por plantilla.
 - README, sección *Current status*: «Digital confirmation of document by user» figura como pendiente.
+- `setup.php`: `menu_toadd` solo en `config` (plantillas); `inc/generate.class.php` línea 429 lista actas con `WHERE user_id = $id`; la tabla `glpi_plugin_protocolsmanager_protocols` no tiene campo de estado.
+
+## Origen de la propuesta
+
+Los mockups del autor elaborados en el semestre anterior (módulo de Aseguramiento de la calidad de software, 2025) ya incluían el panel con estados de las actas, el QR de verificación y la huella SHA en el pie del documento, antes de conocer Protocols Manager. Se anexan como evidencia.
 
 ## Frase de diferenciación
 

@@ -8,12 +8,14 @@ Plugin para **GLPI 11** que genera actas de **entrega, devolución y traslado** 
 
 Proyecto de grado — Programa de Ingeniería de Software, Universidad de Cartagena (2026-2).
 
-![Pestaña Actas en la ficha del usuario](docs/img/01_pestana_usuario.png)
+![Panel de gestión de actas](docs/img/11_panel_gestion.png)
 
 ## Funcionalidades
 
 | Funcionalidad | Dónde |
 |---|---|
+| **Panel de gestión**: indicadores, pendientes de firma por antigüedad, cobertura de activos, listado con filtros y exportación CSV | Herramientas › Actas de entrega |
+| **Mis actas** (autogestión): cada usuario ve y descarga solo sus actas | Interfaz simplificada › Plugins › Actas de entrega |
 | Pestaña **Actas** en la ficha del usuario: activos asignados, generación y actas previas | Administración › Usuarios › *usuario* › Actas |
 | Validación de consistencia inventario-acta (asignación, campos obligatorios, duplicados) | Al pulsar «Validar y generar acta» |
 | Actas de entrega (AE-), devolución (AD-) y traslado (AT-) con consecutivo anual por tipo | Formulario de la pestaña |
@@ -22,7 +24,6 @@ Proyecto de grado — Programa de Ingeniería de Software, Universidad de Cartag
 | Estados: generada → firmada → anulada (con motivo obligatorio) | Ficha del acta |
 | Verificación de integridad interna y pública (sin sesión, datos mínimos) | Ficha del acta / `front/verificar.php` |
 | Pestaña **Actas** en la ficha de cada activo: historial de movimientos | Activos › *activo* › Actas |
-| Listado y búsqueda de actas | Herramientas › Actas de entrega |
 | Derechos por perfil: leer, generar, firmar/anular (no existe el derecho de borrar) | Administración › Perfiles › *perfil* › Actas de entrega |
 
 ## Requisitos
