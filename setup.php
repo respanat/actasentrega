@@ -16,7 +16,7 @@ use GlpiPlugin\Actasentrega\Acta;
 use GlpiPlugin\Actasentrega\ActaItem;
 use GlpiPlugin\Actasentrega\Profile as ActaProfile;
 
-define('PLUGIN_ACTASENTREGA_VERSION', '0.1.0');
+define('PLUGIN_ACTASENTREGA_VERSION', '0.2.0');
 define('PLUGIN_ACTASENTREGA_MIN_GLPI', '11.0.0');
 define('PLUGIN_ACTASENTREGA_MAX_GLPI', '11.0.99');
 

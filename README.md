@@ -21,6 +21,8 @@ Proyecto de grado — Programa de Ingeniería de Software, Universidad de Cartag
 | Actas de entrega (AE-), devolución (AD-) y traslado (AT-) con consecutivo anual por tipo | Formulario de la pestaña |
 | PDF con texto real, tabla de activos, firmas, huella SHA-256 y QR | Guardado en Gestión › Documentos y vinculado al acta, a las personas y a cada activo |
 | Copia (snapshot) de los datos del activo en el momento del acta | El acta conserva lo entregado aunque el inventario cambie |
+| **Especificaciones técnicas** de cada activo tomadas de GLPI: tipo de equipo, procesador, RAM, almacenamiento, sistema operativo, IP y tamaño de pantalla | Pestaña, ficha y PDF; entran a la huella |
+| Cargo, dependencia y ubicación de quien entrega y quien recibe; accesorios entregados | Pestaña, ficha y PDF; entran a la huella |
 | Estados: generada → firmada → anulada (con motivo obligatorio) | Ficha del acta |
 | Verificación de integridad interna y pública (sin sesión, datos mínimos) | Ficha del acta / `front/verificar.php` |
 | Pestaña **Actas** en la ficha de cada activo: historial de movimientos | Activos › *activo* › Actas |
@@ -49,6 +51,15 @@ php bin/console plugin:activate actasentrega
 ```
 
 El perfil Super-Admin recibe todos los derechos. Para otros perfiles: **Administración › Perfiles › *perfil* › Actas de entrega**.
+
+### Actualizar desde 0.1.0
+
+```bash
+cd /ruta/de/glpi/plugins/actasentrega && git pull
+```
+
+Luego **Configuración › Complementos › Actas de entrega › Actualizar** (o `php bin/console plugin:install actasentrega --username=glpi` y `plugin:activate`).
+La actualización agrega dos columnas y no toca las actas existentes: las generadas con 0.1.0 se siguen verificando con su formato original (campo `version` del contenido canónico).
 
 ### Ambiente de pruebas con Docker
 

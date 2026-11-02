@@ -50,7 +50,9 @@
               <tr class="{{ a.completo ? '' : 'table-warning' }}">
                 <td><input type="checkbox" class="form-check-input actasentrega-activo" name="activos[]" value="{{ a.clave }}"></td>
                 <td>{{ a.tipo_activo }}</td>
-                <td>{{ a.nombre }}</td>
+                <td>{{ a.nombre }}
+                  {% if a.detalle is not empty %}<div class="text-muted small">{{ a.detalle|join(' · ') }}</div>{% endif %}
+                </td>
                 <td>{{ a.fabricante }} {{ a.modelo }}</td>
                 <td>{{ a.serial ?: '—' }}</td>
                 <td>{{ a.otherserial ?: '—' }}
@@ -60,7 +62,8 @@
                 </td>
                 <td>
                   <select class="form-select form-select-sm" name="estado_fisico[{{ a.clave }}]" style="min-width: 110px">
-                    <option value="Bueno">{{ __('Bueno', 'actasentrega') }}</option>
+                    <option value="Nuevo">{{ __('Nuevo', 'actasentrega') }}</option>
+                    <option value="Bueno" selected>{{ __('Bueno', 'actasentrega') }}</option>
                     <option value="Regular">{{ __('Regular', 'actasentrega') }}</option>
                     <option value="Malo">{{ __('Malo', 'actasentrega') }}</option>
                   </select>
@@ -71,8 +74,17 @@
           </table>
         </div>
 
-        <label class="form-label mt-2" for="actasentrega-obs">{{ __('Observaciones', 'actasentrega') }}</label>
-        <textarea class="form-control" name="observaciones" id="actasentrega-obs" rows="2" maxlength="1000"></textarea>
+        <div class="row g-3 mt-0">
+          <div class="col-md-6">
+            <label class="form-label" for="actasentrega-acc">{{ __('Accesorios entregados', 'actasentrega') }}</label>
+            <textarea class="form-control" name="accesorios" id="actasentrega-acc" rows="2" maxlength="500"
+              placeholder="{{ __('Ej.: cargador 65 W, mouse, teclado, maletín', 'actasentrega') }}"></textarea>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="actasentrega-obs">{{ __('Observaciones', 'actasentrega') }}</label>
+            <textarea class="form-control" name="observaciones" id="actasentrega-obs" rows="2" maxlength="1000"></textarea>
+          </div>
+        </div>
       {% endif %}
     </div>
 

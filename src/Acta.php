@@ -38,7 +38,7 @@ class Acta extends CommonDBTM
     /** Campos que nunca cambian después de generar el acta. */
     private const INMUTABLES = [
         'entities_id', 'numero', 'anio', 'consecutivo', 'tipo', 'users_id_entrega', 'users_id_recibe',
-        'users_id_tecnico', 'fecha_generacion', 'observaciones', 'contenido_canonico', 'huella_sha256',
+        'users_id_tecnico', 'fecha_generacion', 'observaciones', 'accesorios', 'contenido_canonico', 'huella_sha256',
         'huella_pdf', 'documents_id', 'date_creation',
     ];
 
@@ -192,10 +192,12 @@ class Acta extends CommonDBTM
             'tipo'          => $tipo,
             'fecha'         => $_SESSION['glpi_currenttime'] ?? date('Y-m-d H:i:s'),
             'entidad'       => (int) ($_SESSION['glpiactive_entity'] ?? 0),
-            'entrega'       => ['id' => $entrega, 'nombre' => self::nombreUsuario($entrega)],
-            'recibe'        => ['id' => $recibe, 'nombre' => self::nombreUsuario($recibe)],
+            'entrega'       => self::datosPersona($entrega),
+            'recibe'        => self::datosPersona($recibe),
             'observaciones' => (string) ($post['observaciones'] ?? ''),
+            'accesorios'    => mb_substr(trim((string) ($post['accesorios'] ?? '')), 0, 500),
             'activos'       => $activos,
+            'version'       => ActaBuilder::VERSION_ACTUAL,
         ];
 
         $errores = ActaBuilder::validar($datos);
@@ -261,6 +263,7 @@ class Acta extends CommonDBTM
                 'users_id_tecnico'   => $tecnico,
                 'fecha_generacion'   => $datos['fecha'],
                 'observaciones'      => $datos['observaciones'],
+                'accesorios'         => $datos['accesorios'],
                 'contenido_canonico' => $canonico,
                 'huella_sha256'      => $huella,
                 'huella_pdf'         => hash('sha256', $pdf),
@@ -281,6 +284,7 @@ class Acta extends CommonDBTM
                     'fabricante'    => $a['fabricante'],
                     'modelo'        => $a['modelo'],
                     'estado_fisico' => $a['estado_fisico'],
+                    'detalle'       => json_encode(ActaBuilder::detalle($a['detalle']), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                 ]);
             }
 
@@ -350,8 +354,171 @@ class Acta extends CommonDBTM
             'otherserial'       => (string) ($item->fields['otherserial'] ?? ''),
             'fabricante'        => $fabricante,
             'modelo'            => $modelo,
+            'detalle'           => self::leerDetalle($itemtype, $id, $item->fields),
             'users_id_asignado' => (int) ($item->fields['users_id'] ?? 0),
         ];
+    }
+
+    /**
+     * Especificaciones técnicas del activo, tomadas de sus componentes en GLPI
+     * (procesador, memoria, discos), del sistema operativo, de las direcciones IP y,
+     * para monitores, del tamaño de pantalla. Lo que no esté registrado en GLPI se omite.
+     *
+     * @return array<string,string>
+     */
+    public static function leerDetalle(string $itemtype, int $id, array $campos = []): array
+    {
+        /** @var \DBmysql $DB */
+        global $DB;
+
+        $propio = ['itemtype' => $itemtype, 'items_id' => $id, 'is_deleted' => 0];
+        $d = [];
+
+        // Tipo dentro de la clase de activo (p. ej. «Portátil» o «PC de escritorio» para computadores)
+        $campo_tipo = strtolower($itemtype) . 'types_id';
+        if ((int) ($campos[$campo_tipo] ?? 0) > 0) {
+            $d['tipo_equipo'] = Dropdown::getDropdownName(getTableForItemType($itemtype . 'Type'), (int) $campos[$campo_tipo]);
+        }
+
+        // Procesador(es): «Intel Core i5-1335U · 1,3 GHz»; si hay varios iguales, «2 × …»
+        $cpus = [];
+        foreach ($DB->request([
+            'SELECT' => ['p.designation', 'i.frequency'],
+            'FROM'   => 'glpi_items_deviceprocessors AS i',
+            'LEFT JOIN' => ['glpi_deviceprocessors AS p' => ['ON' => ['i' => 'deviceprocessors_id', 'p' => 'id']]],
+            'WHERE'  => self::prefijar('i', $propio),
+        ]) as $r) {
+            $txt = trim((string) $r['designation']);
+            if ((int) $r['frequency'] > 0) {
+                $txt .= ' · ' . str_replace('.', ',', (string) round($r['frequency'] / 1000, 1)) . ' GHz';
+            }
+            $cpus[$txt] = ($cpus[$txt] ?? 0) + 1;
+        }
+        $d['procesador'] = implode(' + ', array_map(fn ($t, $n) => $n > 1 ? "$n × $t" : $t, array_keys($cpus), $cpus));
+
+        // Memoria: suma de módulos y tipo («16 GB DDR5»)
+        $mb = 0;
+        $tipos = [];
+        foreach ($DB->request([
+            'SELECT' => ['i.size', 't.name AS tipo'],
+            'FROM'   => 'glpi_items_devicememories AS i',
+            'LEFT JOIN' => [
+                'glpi_devicememories AS m'     => ['ON' => ['i' => 'devicememories_id', 'm' => 'id']],
+                'glpi_devicememorytypes AS t'  => ['ON' => ['m' => 'devicememorytypes_id', 't' => 'id']],
+            ],
+            'WHERE'  => self::prefijar('i', $propio),
+        ]) as $r) {
+            $mb += (int) $r['size'];
+            if (trim((string) $r['tipo']) !== '') {
+                $tipos[trim((string) $r['tipo'])] = true;
+            }
+        }
+        $d['memoria'] = trim(ActaBuilder::tamano($mb) . ' ' . implode('/', array_keys($tipos)));
+
+        // Discos: «512 GB SSD NVMe»; varios se unen con «+»
+        $discos = [];
+        foreach ($DB->request([
+            'SELECT' => ['i.capacity', 'ht.name AS tipo', 'it.name AS interfaz'],
+            'FROM'   => 'glpi_items_deviceharddrives AS i',
+            'LEFT JOIN' => [
+                'glpi_deviceharddrives AS h'      => ['ON' => ['i' => 'deviceharddrives_id', 'h' => 'id']],
+                'glpi_deviceharddrivetypes AS ht' => ['ON' => ['h' => 'deviceharddrivetypes_id', 'ht' => 'id']],
+                'glpi_interfacetypes AS it'       => ['ON' => ['h' => 'interfacetypes_id', 'it' => 'id']],
+            ],
+            'WHERE'  => self::prefijar('i', $propio),
+        ]) as $r) {
+            $discos[] = trim(ActaBuilder::tamano((int) $r['capacity']) . ' ' . trim($r['tipo'] . ' ' . $r['interfaz']));
+        }
+        $d['almacenamiento'] = implode(' + ', array_filter($discos));
+
+        // Sistema operativo: «Windows 11 Pro 23H2 (64 bits)»
+        $so = $DB->request([
+            'SELECT' => ['o.name AS so', 'v.name AS version', 'e.name AS edicion', 'a.name AS arquitectura'],
+            'FROM'   => 'glpi_items_operatingsystems AS i',
+            'LEFT JOIN' => [
+                'glpi_operatingsystems AS o'             => ['ON' => ['i' => 'operatingsystems_id', 'o' => 'id']],
+                'glpi_operatingsystemversions AS v'      => ['ON' => ['i' => 'operatingsystemversions_id', 'v' => 'id']],
+                'glpi_operatingsystemeditions AS e'      => ['ON' => ['i' => 'operatingsystemeditions_id', 'e' => 'id']],
+                'glpi_operatingsystemarchitectures AS a' => ['ON' => ['i' => 'operatingsystemarchitectures_id', 'a' => 'id']],
+            ],
+            'WHERE'  => self::prefijar('i', $propio),
+            'LIMIT'  => 1,
+        ])->current();
+        if ($so) {
+            $txt = trim(implode(' ', array_filter([$so['so'], $so['edicion'], $so['version']])));
+            if (trim((string) $so['arquitectura']) !== '') {
+                $txt .= ' (' . $so['arquitectura'] . ')';
+            }
+            $d['sistema_operativo'] = trim($txt);
+        }
+
+        // Direcciones IPv4 del activo (de sus puertos de red)
+        $ips = [];
+        foreach ($DB->request([
+            'SELECT' => ['name'],
+            'FROM'   => 'glpi_ipaddresses',
+            'WHERE'  => ['mainitemtype' => $itemtype, 'mainitems_id' => $id, 'is_deleted' => 0, 'version' => 4],
+            'ORDER'  => 'id',
+        ]) as $r) {
+            $ips[(string) $r['name']] = true;
+        }
+        $d['direccion_ip'] = implode(', ', array_keys($ips));
+
+        // Monitores: tamaño en pulgadas
+        if ((float) ($campos['size'] ?? 0) > 0 && $itemtype === 'Monitor') {
+            $d['pantalla'] = rtrim(rtrim(number_format((float) $campos['size'], 1, ',', ''), '0'), ',') . '"';
+        }
+
+        return array_filter($d, fn ($v) => $v !== '');
+    }
+
+    /** Antepone el alias de tabla a las claves de un criterio WHERE simple. */
+    private static function prefijar(string $alias, array $where): array
+    {
+        $out = [];
+        foreach ($where as $k => $v) {
+            $out["$alias.$k"] = $v;
+        }
+        return $out;
+    }
+
+    /**
+     * Nombre, cargo, dependencia (grupo por defecto o primer grupo) y ubicación de un usuario,
+     * tal como están en GLPI al generar el acta.
+     */
+    public static function datosPersona(int $id): array
+    {
+        /** @var \DBmysql $DB */
+        global $DB;
+
+        $p = ['id' => $id, 'nombre' => '', 'cargo' => '', 'dependencia' => '', 'ubicacion' => ''];
+        $u = new User();
+        if ($id <= 0 || !$u->getFromDB($id)) {
+            return $p;
+        }
+        $p['nombre'] = $u->getFriendlyName();
+        if ((int) $u->fields['usertitles_id'] > 0) {
+            $p['cargo'] = Dropdown::getDropdownName('glpi_usertitles', (int) $u->fields['usertitles_id']);
+        }
+        $grupo = (int) ($u->fields['groups_id'] ?? 0);
+        if ($grupo <= 0) {
+            $g = $DB->request([
+                'SELECT' => ['groups_id'],
+                'FROM'   => 'glpi_groups_users',
+                'WHERE'  => ['users_id' => $id],
+                'ORDER'  => 'id',
+                'LIMIT'  => 1,
+            ])->current();
+            $grupo = (int) ($g['groups_id'] ?? 0);
+        }
+        if ($grupo > 0) {
+            $p['dependencia'] = Dropdown::getDropdownName('glpi_groups', $grupo);
+        }
+        if ((int) $u->fields['locations_id'] > 0) {
+            $p['ubicacion'] = Dropdown::getDropdownName('glpi_locations', (int) $u->fields['locations_id']);
+        }
+        // «&nbsp;» y similares que devuelve getDropdownName cuando no hay valor
+        return array_map(fn ($v) => is_string($v) ? trim(html_entity_decode($v), " \u{00A0}") : $v, $p);
     }
 
     /** Activos asignados en GLPI a un usuario (todos los tipos asignables). */
@@ -423,20 +590,31 @@ class Acta extends CommonDBTM
             'WHERE' => ['plugin_actasentrega_actas_id' => $this->getID()],
         ]), false);
 
+        // Las personas se toman del contenido firmado (sus datos en GLPI pueden cambiar después);
+        // los identificadores, la cabecera y los activos, de las tablas.
         $reconstruido = ActaBuilder::canonico([
+            'version'       => (int) ($doc['version'] ?? 1),
             'numero'        => $this->fields['numero'],
             'tipo'          => $this->fields['tipo'],
             'fecha'         => $doc['fecha'] ?? '',
             'entidad'       => (int) $this->fields['entities_id'],
-            'entrega'       => ['id' => (int) $this->fields['users_id_entrega'], 'nombre' => $doc['entrega']['nombre'] ?? ''],
-            'recibe'        => ['id' => (int) $this->fields['users_id_recibe'], 'nombre' => $doc['recibe']['nombre'] ?? ''],
+            'entrega'       => ['id' => (int) $this->fields['users_id_entrega']] + ($doc['entrega'] ?? []),
+            'recibe'        => ['id' => (int) $this->fields['users_id_recibe']] + ($doc['recibe'] ?? []),
             'observaciones' => (string) $this->fields['observaciones'],
+            'accesorios'    => (string) ($this->fields['accesorios'] ?? ''),
             'activos'       => $items,
         ]);
         if (!hash_equals($canonico, $reconstruido)) {
             $motivos[] = __('Los datos del acta o de sus activos fueron modificados en la base de datos.', 'actasentrega');
         }
         return ['valida' => $motivos === [], 'motivos' => $motivos];
+    }
+
+    /** Datos de las personas tal como quedaron en el contenido firmado del acta. */
+    public static function personasFirmadas(array $fields): array
+    {
+        $doc = json_decode((string) ($fields['contenido_canonico'] ?? ''), true) ?: [];
+        return ['entrega' => $doc['entrega'] ?? [], 'recibe' => $doc['recibe'] ?? []];
     }
 
     public static function urlVerificacion(string $numero, string $huella): string
@@ -538,6 +716,10 @@ class Acta extends CommonDBTM
             'FROM'  => ActaItem::getTable(),
             'WHERE' => ['plugin_actasentrega_actas_id' => $ID],
         ]), false);
+        foreach ($items as &$it) {
+            $it['detalle'] = (array) ActaBuilder::detalle($it['detalle'] ?? '');
+        }
+        unset($it);
         $eventos = iterator_to_array($DB->request([
             'FROM'  => 'glpi_plugin_actasentrega_eventos',
             'WHERE' => ['plugin_actasentrega_actas_id' => $ID],
@@ -556,6 +738,8 @@ class Acta extends CommonDBTM
             'estados'      => self::getEstados(),
             'entrega'      => self::nombreUsuario((int) $this->fields['users_id_entrega']),
             'recibe'       => self::nombreUsuario((int) $this->fields['users_id_recibe']),
+            'personas'     => self::personasFirmadas($this->fields),
+            'etiquetas'    => ActaBuilder::DETALLE,
             'tecnico'      => self::nombreUsuario((int) $this->fields['users_id_tecnico']),
             'integridad'   => $this->verificarIntegridad(),
             'puede_editar' => self::canUpdate(),

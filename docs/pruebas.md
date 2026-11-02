@@ -63,6 +63,9 @@ Resultado: **16 casos, 16 superados.**
 | I-14 | Filtros y exportación | Estado «generada» + búsqueda «PC»; exportar CSV | 3 filas; CSV UTF-8 con 4 actas | ✔ | — |
 | I-15 | Autogestión | Usuario simplificado (post-only) › Plugins › Actas de entrega | Ve solo su acta AE-2026-000002 y la descarga (PDF) | ✔ | [12](img/12_mis_actas_autogestion.png) |
 | I-16 | Acceso indebido | El mismo usuario pide el PDF de un acta ajena y el panel | 403 en ambos casos | ✔ | — |
+| I-17 | Especificaciones técnicas (v0.2.0) | Acta C09 (PC-04 + MON-03) con accesorios | Pestaña, ficha y PDF muestran tipo, CPU, RAM, disco, SO, IP, pantalla, cargo, dependencia y ubicación | ✔ | 20, 21 |
+| I-18 | Compatibilidad con actas 0.1.0 | Actualizar el plugin con 5 actas generadas en 0.1.0 | Las 5 siguen con «Integridad verificada» | ✔ | — |
+| I-19 | Alteración de una especificación | Cambiar «16 GB» por «32 GB» en la tabla de ítems | «Integridad comprometida»; al restaurar, vuelve a verificada | ✔ | — |
 
 Pendiente: prueba de integración del traslado (requiere seleccionar el custodio anterior) y evaluación antes y después con usuarios reales.
 

@@ -31,9 +31,18 @@
           <dl class="row mb-0">
             <dt class="col-sm-3">{{ __('Tipo', 'actasentrega') }}</dt><dd class="col-sm-9">{{ tipos[acta.tipo] ?? acta.tipo }}</dd>
             <dt class="col-sm-3">{{ __('Fecha', 'actasentrega') }}</dt><dd class="col-sm-9">{{ acta.fecha_generacion }}</dd>
-            <dt class="col-sm-3">{{ __('Entrega', 'actasentrega') }}</dt><dd class="col-sm-9">{{ entrega }}</dd>
-            <dt class="col-sm-3">{{ __('Recibe', 'actasentrega') }}</dt><dd class="col-sm-9">{{ recibe }}</dd>
+            {% for rol, etiqueta in {'entrega': __('Entrega', 'actasentrega'), 'recibe': __('Recibe', 'actasentrega')} %}
+              {% set p = personas[rol] %}
+              <dt class="col-sm-3">{{ etiqueta }}</dt>
+              <dd class="col-sm-9">{{ p.nombre ?? (rol == 'entrega' ? entrega : recibe) }}
+                {% set extra = [p.cargo ?? '', p.dependencia ?? '', p.ubicacion ?? '']|filter(v => v is not empty) %}
+                {% if extra is not empty %}<div class="text-muted small">{{ extra|join(' · ') }}</div>{% endif %}
+              </dd>
+            {% endfor %}
             <dt class="col-sm-3">{{ __('Generada por', 'actasentrega') }}</dt><dd class="col-sm-9">{{ tecnico }}</dd>
+            {% if acta.accesorios %}
+              <dt class="col-sm-3">{{ __('Accesorios', 'actasentrega') }}</dt><dd class="col-sm-9">{{ acta.accesorios|nl2br }}</dd>
+            {% endif %}
             {% if acta.observaciones %}
               <dt class="col-sm-3">{{ __('Observaciones', 'actasentrega') }}</dt><dd class="col-sm-9">{{ acta.observaciones|nl2br }}</dd>
             {% endif %}
@@ -57,6 +66,11 @@
             <tbody>
               {% for i in items %}
               <tr><td>{{ i.nombre }}</td><td>{{ i.fabricante }} {{ i.modelo }}</td><td>{{ i.serial }}</td><td>{{ i.otherserial }}</td><td>{{ i.estado_fisico }}</td></tr>
+              {% if i.detalle is not empty %}
+              <tr class="border-0"><td colspan="5" class="pt-0 small text-muted">
+                {% for clave, valor in i.detalle %}<span class="me-3"><b>{{ etiquetas[clave] ?? clave }}:</b> {{ valor }}</span>{% endfor %}
+              </td></tr>
+              {% endif %}
               {% endfor %}
             </tbody>
           </table>

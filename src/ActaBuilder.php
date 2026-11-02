@@ -25,6 +25,28 @@ final class ActaBuilder
     /** Campos del activo que entran al contenido canónico (y por tanto a la huella). */
     private const CAMPOS_CANONICOS = ['itemtype', 'items_id', 'nombre', 'serial', 'otherserial', 'fabricante', 'modelo', 'estado_fisico'];
 
+    /**
+     * Versión del formato canónico. La 1 (v0.1.0) solo tenía los datos básicos; la 2 agrega las
+     * especificaciones técnicas de cada activo, el cargo, la dependencia y la ubicación de las
+     * personas, y los accesorios. Las actas guardan su versión, así que las antiguas se siguen
+     * verificando con el formato con que se generaron.
+     */
+    public const VERSION_ACTUAL = 2;
+
+    /** Especificaciones técnicas que se copian de GLPI (orden de presentación). */
+    public const DETALLE = [
+        'tipo_equipo'       => 'Tipo de equipo',
+        'procesador'        => 'Procesador',
+        'memoria'           => 'Memoria RAM',
+        'almacenamiento'    => 'Almacenamiento',
+        'sistema_operativo' => 'Sistema operativo',
+        'direccion_ip'      => 'Dirección IP',
+        'pantalla'          => 'Tamaño de pantalla',
+    ];
+
+    /** Datos de cada persona del acta, además del nombre. */
+    public const DATOS_PERSONA = ['cargo', 'dependencia', 'ubicacion'];
+
     private const ETIQUETAS = [
         'nombre'        => 'nombre',
         'serial'        => 'número de serie',
@@ -129,17 +151,30 @@ final class ActaBuilder
      */
     public static function canonico(array $d): string
     {
+        $version = (int) ($d['version'] ?? self::VERSION_ACTUAL);
+
         $activos = [];
         foreach ($d['activos'] ?? [] as $a) {
             $fila = [];
             foreach (self::CAMPOS_CANONICOS as $c) {
                 $fila[$c] = $c === 'items_id' ? (int) ($a[$c] ?? 0) : trim((string) ($a[$c] ?? ''));
             }
+            if ($version >= 2) {
+                $fila['detalle'] = self::detalle($a['detalle'] ?? []);
+            }
             $activos[] = $fila;
         }
         usort($activos, fn ($x, $y) => [$x['itemtype'], $x['items_id']] <=> [$y['itemtype'], $y['items_id']]);
 
-        $persona = fn ($p) => ['id' => (int) ($p['id'] ?? 0), 'nombre' => trim((string) ($p['nombre'] ?? ''))];
+        $persona = function ($p) use ($version) {
+            $out = ['id' => (int) ($p['id'] ?? 0), 'nombre' => trim((string) ($p['nombre'] ?? ''))];
+            if ($version >= 2) {
+                foreach (self::DATOS_PERSONA as $c) {
+                    $out[$c] = trim((string) ($p[$c] ?? ''));
+                }
+            }
+            return $out;
+        };
 
         $doc = [
             'activos'       => $activos,
@@ -150,9 +185,51 @@ final class ActaBuilder
             'observaciones' => trim((string) ($d['observaciones'] ?? '')),
             'recibe'        => $persona($d['recibe'] ?? []),
             'tipo'          => (string) ($d['tipo'] ?? ''),
-            'version'       => 1,
+            'version'       => $version,
         ];
+        if ($version >= 2) {
+            $doc['accesorios'] = trim((string) ($d['accesorios'] ?? ''));
+        }
         return json_encode(self::ordenar($doc), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+    }
+
+    /**
+     * Normaliza las especificaciones técnicas: acepta un arreglo o el JSON guardado en la base de datos,
+     * conserva solo las claves conocidas con valor y devuelve un objeto (nunca una lista).
+     *
+     * @return array<string,string>|\stdClass
+     */
+    public static function detalle(array|string|null $detalle): array|\stdClass
+    {
+        if (is_string($detalle)) {
+            $detalle = $detalle === '' ? [] : (json_decode($detalle, true) ?: []);
+        }
+        $out = [];
+        foreach (array_keys(self::DETALLE) as $clave) {
+            $v = trim((string) ($detalle[$clave] ?? ''));
+            if ($v !== '') {
+                $out[$clave] = $v;
+            }
+        }
+        // Un activo sin especificaciones se representa como {} y no como [], para que el JSON sea estable.
+        return $out === [] ? new \stdClass() : $out;
+    }
+
+    /** Tamaño en MB (como lo guarda GLPI) a texto legible: 16384 → «16 GB», 512000 → «512 GB», 1000000 → «1 TB». */
+    public static function tamano(int $mb): string
+    {
+        if ($mb <= 0) {
+            return '';
+        }
+        if ($mb < 1000) {
+            return $mb . ' MB';
+        }
+        // GLPI no fija la base: los discos suelen registrarse en base 1000 y la memoria en base 1024.
+        $gb = $mb % 1000 === 0 ? intdiv($mb, 1000) : (int) round($mb / 1024);
+        if ($gb >= 1000 && $gb % 1000 === 0) {
+            return intdiv($gb, 1000) . ' TB';
+        }
+        return $gb . ' GB';
     }
 
     /** Huella SHA-256 del contenido canónico. Prueba integridad, no autoría: no es una firma digital. */

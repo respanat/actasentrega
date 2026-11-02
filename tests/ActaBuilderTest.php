@@ -177,4 +177,63 @@ final class ActaBuilderTest extends TestCase
         $this->assertSame(12, A::asignadoEsperado('traslado', 3, 12));
         $this->assertNull(A::asignadoEsperado('otro', 3, 12));
     }
+
+    // ---- Formato canónico v2 (especificaciones, datos de las personas, accesorios) ----
+
+    public function testVersionActualIncluyeDetalleYDatosDePersona(): void
+    {
+        $d = $this->acta();
+        $d['recibe'] += ['cargo' => 'Auxiliar contable', 'dependencia' => 'Contabilidad', 'ubicacion' => 'Sede Norte'];
+        $d['activos'][0]['detalle'] = ['memoria' => '8 GB DDR4', 'procesador' => 'Intel Core i5-10500'];
+        $d['accesorios'] = 'Teclado y mouse';
+        $doc = json_decode(A::canonico($d), true);
+        $this->assertSame(2, $doc['version']);
+        $this->assertSame('Auxiliar contable', $doc['recibe']['cargo']);
+        $this->assertSame('Teclado y mouse', $doc['accesorios']);
+        // Las especificaciones quedan con las claves en orden, sin importar cómo llegaron
+        $this->assertSame(['memoria', 'procesador'], array_keys($doc['activos'][0]['detalle']));
+    }
+
+    public function testActaV1SeReconstruyeIgual(): void
+    {
+        // Un acta generada con 0.1.0 no tenía estos campos: su huella no debe cambiar
+        $d = $this->acta();
+        $d['version'] = 1;
+        $v1 = A::canonico($d);
+        $d['accesorios'] = 'Algo agregado después';
+        $d['activos'][0]['detalle'] = '{"memoria":"8 GB"}';
+        $this->assertSame($v1, A::canonico($d));
+        $this->assertFalse(str_contains($v1, 'detalle'));
+    }
+
+    public function testCambioEnEspecificacionCambiaLaHuella(): void
+    {
+        $d = $this->acta();
+        $d['activos'][0]['detalle'] = ['memoria' => '16 GB'];
+        $h = A::huella($d);
+        $d['activos'][0]['detalle'] = ['memoria' => '8 GB'];
+        $this->assertFalse(A::verificar($d, $h));
+    }
+
+    public function testDetalleDesdeJsonYDesdeArregloEsIgual(): void
+    {
+        $arr = ['direccion_ip' => '10.0.0.5', 'procesador' => 'Ryzen 5', 'otra' => 'se ignora', 'pantalla' => ''];
+        $this->assertSame(A::detalle($arr), A::detalle(json_encode($arr)));
+        $this->assertSame(['procesador' => 'Ryzen 5', 'direccion_ip' => '10.0.0.5'], A::detalle($arr));
+    }
+
+    public function testActivoSinEspecificacionesEsObjetoVacio(): void
+    {
+        $d = $this->acta();
+        $this->assertStringContainsString('"detalle":{}', A::canonico($d));
+    }
+
+    public function testTamanoLegible(): void
+    {
+        $this->assertSame('16 GB', A::tamano(16384));
+        $this->assertSame('512 GB', A::tamano(512000));
+        $this->assertSame('1 TB', A::tamano(1000000));
+        $this->assertSame('512 MB', A::tamano(512));
+        $this->assertSame('', A::tamano(0));
+    }
 }

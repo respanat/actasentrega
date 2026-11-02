@@ -35,6 +35,7 @@ function plugin_actasentrega_install(): bool
             `users_id_tecnico` int {$sign} NOT NULL DEFAULT '0',
             `fecha_generacion` timestamp NULL DEFAULT NULL,
             `observaciones` text,
+            `accesorios` text,
             `contenido_canonico` longtext,
             `huella_sha256` char(64) DEFAULT NULL,
             `huella_pdf` char(64) DEFAULT NULL,
@@ -68,6 +69,7 @@ function plugin_actasentrega_install(): bool
             `fabricante` varchar(255) NOT NULL DEFAULT '',
             `modelo` varchar(255) NOT NULL DEFAULT '',
             `estado_fisico` varchar(100) NOT NULL DEFAULT '',
+            `detalle` text,
             PRIMARY KEY (`id`),
             UNIQUE KEY `unicity` (`plugin_actasentrega_actas_id`, `itemtype`, `items_id`),
             KEY `item` (`itemtype`, `items_id`)
@@ -89,6 +91,11 @@ function plugin_actasentrega_install(): bool
             KEY `users_id` (`users_id`)
         ) ENGINE=InnoDB DEFAULT CHARSET={$charset} COLLATE={$collation} ROW_FORMAT=DYNAMIC;");
     }
+
+    // Actualización desde 0.1.0: especificaciones técnicas por activo y accesorios del acta.
+    // Las actas antiguas quedan con estos campos vacíos y se siguen verificando con el formato v1.
+    $migration->addField('glpi_plugin_actasentrega_actas', 'accesorios', 'text', ['after' => 'observaciones']);
+    $migration->addField('glpi_plugin_actasentrega_actas_items', 'detalle', 'text', ['after' => 'estado_fisico']);
 
     // Derecho del plugin; se concede completo a los perfiles que administran la configuración.
     $migration->addRight(Acta::$rightname, ALLSTANDARDRIGHT, ['config' => UPDATE]);
