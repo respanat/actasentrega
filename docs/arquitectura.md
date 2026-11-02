@@ -121,6 +121,7 @@ erDiagram
     int users_id_tecnico FK
     timestamp fecha_generacion
     text observaciones
+    text accesorios "v0.2.0"
     longtext contenido_canonico "lo que se firmó con la huella"
     char huella_sha256 "64 hex"
     char huella_pdf "SHA-256 del archivo PDF"
@@ -138,6 +139,7 @@ erDiagram
     varchar fabricante
     varchar modelo
     varchar estado_fisico
+    text detalle "JSON: CPU, RAM, disco, SO, IP (v0.2.0)"
   }
   glpi_plugin_actasentrega_eventos {
     int id PK
