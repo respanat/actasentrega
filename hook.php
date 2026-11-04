@@ -51,7 +51,10 @@ function plugin_actasentrega_install(): bool
             KEY `users_id_recibe` (`users_id_recibe`),
             KEY `users_id_tecnico` (`users_id_tecnico`),
             KEY `documents_id` (`documents_id`),
-            KEY `estado` (`estado`)
+            KEY `estado` (`estado`),
+            CONSTRAINT `chk_actas_tipo` CHECK (`tipo` IN ('entrega', 'devolucion', 'traslado')),
+            CONSTRAINT `chk_actas_estado` CHECK (`estado` IN ('generada', 'firmada', 'anulada')),
+            CONSTRAINT `chk_actas_consecutivo` CHECK (`consecutivo` > 0 AND `anio` >= 2000)
         ) ENGINE=InnoDB DEFAULT CHARSET={$charset} COLLATE={$collation} ROW_FORMAT=DYNAMIC;");
     }
 
@@ -101,6 +104,33 @@ function plugin_actasentrega_install(): bool
     $migration->addRight(Acta::$rightname, ALLSTANDARDRIGHT, ['config' => UPDATE]);
 
     $migration->executeMigration();
+
+    // Restricciones CHECK (v0.2.1): la base de datos también rechaza tipos, estados y consecutivos
+    // inválidos, además de la validación del modelo. Se agregan si faltan (instalaciones anteriores).
+    $existentes = [];
+    foreach (
+        $DB->request([
+            'SELECT' => ['CONSTRAINT_NAME'],
+            'FROM'   => 'information_schema.TABLE_CONSTRAINTS',
+            'WHERE'  => [
+                'TABLE_SCHEMA'    => $DB->dbdefault,
+                'TABLE_NAME'      => 'glpi_plugin_actasentrega_actas',
+                'CONSTRAINT_TYPE' => 'CHECK',
+            ],
+        ]) as $r
+    ) {
+        $existentes[] = $r['CONSTRAINT_NAME'];
+    }
+    $checks = [
+        'chk_actas_tipo'        => "`tipo` IN ('entrega', 'devolucion', 'traslado')",
+        'chk_actas_estado'      => "`estado` IN ('generada', 'firmada', 'anulada')",
+        'chk_actas_consecutivo' => '`consecutivo` > 0 AND `anio` >= 2000',
+    ];
+    foreach ($checks as $nombre => $regla) {
+        if (!in_array($nombre, $existentes, true)) {
+            $DB->doQuery("ALTER TABLE `glpi_plugin_actasentrega_actas` ADD CONSTRAINT `$nombre` CHECK ($regla)");
+        }
+    }
     return true;
 }
 
