@@ -5,6 +5,7 @@
 | Canal | Uso |
 |---|---|
 | **Issues de GitHub**: <https://github.com/respanat/actasentrega/issues> | Reporte de errores, solicitudes de mejora y preguntas de uso. Es el canal principal |
+| **Correo institucional**: <respanat@unicartagena.edu.co> | Consultas que no deban publicarse en el repositorio, por ejemplo las que involucran datos de una organización |
 | **Repositorio**: <https://github.com/respanat/actasentrega> | Código fuente, versiones y documentación actualizada |
 
 Responsable: Ramiro Alfonso España Tejada, autor del complemento.

@@ -136,4 +136,4 @@ GPL-3.0-or-later. Ver [LICENSE](LICENSE) y [Licencia y términos de uso](docs/li
 
 ## Autor y soporte
 
-Ramiro Alfonso España Tejada — reporte errores o sugerencias en [Issues](https://github.com/respanat/actasentrega/issues). Alcance y tiempos en [SOPORTE.md](SOPORTE.md).
+Ramiro Alfonso España Tejada — reporte errores o sugerencias en [Issues](https://github.com/respanat/actasentrega/issues) o escriba a respanat@unicartagena.edu.co. Alcance y tiempos en [SOPORTE.md](SOPORTE.md).

@@ -8,7 +8,7 @@ El complemento **Actas de entrega para GLPI** es software libre, distribuido baj
 
 Se eligió esta licencia porque es la misma de GLPI, lo que garantiza la compatibilidad del complemento con la plataforma en la que se ejecuta.
 
-Copyright © 2026 Ramiro Alfonso España Tejada.
+Copyright © 2026 Ramiro Alfonso España Tejada (respanat@unicartagena.edu.co).
 
 ## 2. Qué permite la licencia
 
