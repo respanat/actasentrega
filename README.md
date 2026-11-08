@@ -6,7 +6,7 @@ Plugin para **GLPI 11** que genera actas de **entrega, devolución y traslado** 
 2. **Integridad verificable.** Cada acta lleva una huella SHA-256 de su contenido, impresa en el PDF junto con un código QR que abre una página pública de verificación.
 3. **Inmutabilidad.** Un acta generada no se modifica ni se elimina: solo se marca como firmada o se anula indicando el motivo. Todo queda en una bitácora.
 
-Proyecto de grado — Programa de Ingeniería de Software, Universidad de Cartagena (2026-2).
+Proyecto de grado — Programa de Ingeniería de Software, Universidad de Cartagena (2026-2). **Versión 1.0.0** ([historial de versiones](CHANGELOG.md)).
 
 ![Panel de gestión de actas](docs/img/11_panel_gestion.png)
 
@@ -52,14 +52,14 @@ php bin/console plugin:activate actasentrega
 
 El perfil Super-Admin recibe todos los derechos. Para otros perfiles: **Administración › Perfiles › *perfil* › Actas de entrega**.
 
-### Actualizar desde 0.1.0
+### Actualizar desde una versión anterior
 
 ```bash
 cd /ruta/de/glpi/plugins/actasentrega && git pull
 ```
 
 Luego **Configuración › Complementos › Actas de entrega › Actualizar** (o `php bin/console plugin:install actasentrega --username=glpi` y `plugin:activate`).
-La actualización agrega dos columnas y no toca las actas existentes: las generadas con 0.1.0 se siguen verificando con su formato original (campo `version` del contenido canónico).
+La actualización agrega columnas y restricciones solo si faltan y no toca las actas existentes: las generadas con versiones anteriores se siguen verificando con su formato original (campo `version` del contenido canónico). Detalles en la [guía de instalación](docs/guia_instalacion.md).
 
 ### Ambiente de pruebas con Docker
 
@@ -103,6 +103,10 @@ Resultados y casos de integración en [docs/pruebas.md](docs/pruebas.md).
 
 ## Documentación
 
+- [Manual de usuario](docs/manual_usuario.md)
+- [Guía de instalación](docs/guia_instalacion.md)
+- [Licencia y términos de uso](docs/licencia_y_terminos.md)
+- [Soporte](SOPORTE.md)
 - [Requisitos](docs/requisitos.md)
 - [Arquitectura y modelo de datos](docs/arquitectura.md)
 - [Comparativa con complementos existentes](docs/comparativa.md)
@@ -128,8 +132,8 @@ actasentrega/
 
 ## Licencia
 
-GPL-3.0-or-later. Ver [LICENSE](LICENSE).
+GPL-3.0-or-later. Ver [LICENSE](LICENSE) y [Licencia y términos de uso](docs/licencia_y_terminos.md).
 
 ## Autor y soporte
 
-Ramiro Alfonso España Tejada — reporte errores o sugerencias en [Issues](https://github.com/respanat/actasentrega/issues).
+Ramiro Alfonso España Tejada — reporte errores o sugerencias en [Issues](https://github.com/respanat/actasentrega/issues). Alcance y tiempos en [SOPORTE.md](SOPORTE.md).
